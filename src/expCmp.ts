@@ -1,0 +1,153 @@
+import { BigDecimal, IBigDecimal } from "./BigDecimal";
+import { _0n, _10n, _1n, _34n, _slowBigintPositiveExp, abs } from "./utils/bigints";
+
+export enum ExpOrd {
+    GT = 1,
+    LT = -1,
+    UNKNOWN = NaN,
+}
+Object.freeze( ExpOrd );
+
+interface ExpCmpOrdering {
+    readonly iterations: bigint;
+    readonly estimation: ExpOrd;
+    readonly approx: BigDecimal;
+}
+
+export function expCmp(
+    decimal: IBigDecimal,
+    max_n: bigint,
+    bound_x: bigint,
+    compare: IBigDecimal
+): ExpCmpOrdering
+{
+    const output = BigDecimal.fromPrecision( decimal.precision );
+    return refExpCmp(
+        output.data,
+        max_n,
+        decimal.data,
+        bound_x,
+        compare.data
+    );
+}
+
+const PRECISION = _slowBigintPositiveExp( _10n, _34n );
+
+function scale( rop: bigint ): bigint
+{
+    let [ a, tmp ] = div_qr( rop, PRECISION );
+    if( rop < _0n && tmp !== _0n ) {
+        a -= _1n;
+    }
+    return a;
+}
+
+function div_qr(
+    x: bigint,
+    y: bigint
+): [ quotient: bigint, remainder: bigint ]
+{
+    return [ x / y, x % y ];
+}
+
+const ONE = _1n;
+const EPS_THRESHOLD = _slowBigintPositiveExp( _10n, _10n );
+
+// https://github.com/txpipe/pallas/blob/a97bd93cdc55fa2b061a6ad5fd572f5528a912b8/pallas-math/src/math_dashu.rs#L499
+function divWithPrecision(
+    x: bigint,
+    y: bigint
+): bigint
+{
+    let tmp_quotient: bigint;
+    let tmp_remainder: bigint;
+    let tmp: bigint;
+    [ tmp_quotient, tmp_remainder ] = div_qr( x, y );
+
+    tmp = tmp_quotient * PRECISION;
+    tmp_remainder *= PRECISION;
+    [ tmp_quotient, tmp_remainder ] = div_qr( tmp_remainder, y );
+
+    tmp += tmp_quotient;
+    return tmp;
+}
+
+/// `bound_x` is the bound for exp in the interval x is chosen from
+/// `compare` the value to compare to
+///
+/// if the result is GT, then the computed value is guaranteed to be greater, if
+/// the result is LT, the computed value is guaranteed to be less than
+/// `compare`. In the case of `UNKNOWN` no conclusion was possible for the
+/// selected precision.
+///
+/// Lagrange remainder require knowledge of the maximum value to compute the
+/// maximal error of the remainder.
+export function refExpCmp(
+    rop: bigint,
+    max_n: bigint,
+    x: bigint,
+    bound_x: bigint,
+    compare: bigint
+): ExpCmpOrdering
+{
+    const precision = BigInt( 34 );
+    const precision_multiplier = _slowBigintPositiveExp( _10n, precision );
+    
+    // let result = precision_multiplier; // Start with 1.0 in fixed-point
+    let n = _0n;
+    let divisor: bigint = _1n;
+    let next_x: bigint;
+    let error: bigint = x;
+    let upper: bigint;
+    let lower: bigint;
+    let error_term: bigint;
+
+    let estimate = ExpOrd.UNKNOWN;
+    
+    while( n < max_n )
+    {
+        next_x = error;
+        
+        // Check if error is below epsilon threshold
+        if( abs( next_x ) < abs( EPS_THRESHOLD ) ) {
+            break;
+        }
+        
+        divisor += ONE;
+
+        // Update error estimation: bound_x * x^(n+1)/(n + 1)!
+        // error stores the x^n part
+        error = scale( error * x );
+        error = divWithPrecision( error, divisor );
+        error_term = (error * bound_x);
+
+        rop = rop + next_x;
+        
+        // Compare is guaranteed to be above overall result
+        upper = rop + error_term;
+        if( compare > upper ) {
+            estimate = ExpOrd.GT;
+            n += _1n;
+            break;
+        }
+
+        // Compare is guaranteed to be below overall result
+        lower = rop - error_term;
+        if( compare < lower ) {
+            estimate = ExpOrd.LT;
+            n += _1n;
+            break;
+        }
+        
+        n++;
+    }
+
+    const approx = BigDecimal.fromPrecision(); // DEFAULT_PRECISION
+    approx.data = rop;
+
+    return {
+        iterations: n,
+        estimation: estimate,
+        approx
+    };
+}
