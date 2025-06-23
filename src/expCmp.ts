@@ -1,5 +1,5 @@
 import { BigDecimal, IBigDecimal } from "./BigDecimal";
-import { _0n, _10n, _1n, _34n, _slowBigintPositiveExp, abs } from "./utils/bigints";
+import { _0n, _10n, _1n, _34n, _slowBigintPositiveExp, abs, DIV_DEFAULT_PRECISION, div_qr, divWithDefaultPrecision, scale } from "./utils/bigints";
 
 export enum ExpOrd {
     GT = 1,
@@ -31,46 +31,10 @@ export function expCmp(
     );
 }
 
-const PRECISION = _slowBigintPositiveExp( _10n, _34n );
 
-function scale( rop: bigint ): bigint
-{
-    let [ a, tmp ] = div_qr( rop, PRECISION );
-    if( rop < _0n && tmp !== _0n ) {
-        a -= _1n;
-    }
-    return a;
-}
-
-function div_qr(
-    x: bigint,
-    y: bigint
-): [ quotient: bigint, remainder: bigint ]
-{
-    return [ x / y, x % y ];
-}
 
 const ONE = _1n;
 const EPS_THRESHOLD = _slowBigintPositiveExp( _10n, _10n );
-
-// https://github.com/txpipe/pallas/blob/a97bd93cdc55fa2b061a6ad5fd572f5528a912b8/pallas-math/src/math_dashu.rs#L499
-function divWithPrecision(
-    x: bigint,
-    y: bigint
-): bigint
-{
-    let tmp_quotient: bigint;
-    let tmp_remainder: bigint;
-    let tmp: bigint;
-    [ tmp_quotient, tmp_remainder ] = div_qr( x, y );
-
-    tmp = tmp_quotient * PRECISION;
-    tmp_remainder *= PRECISION;
-    [ tmp_quotient, tmp_remainder ] = div_qr( tmp_remainder, y );
-
-    tmp += tmp_quotient;
-    return tmp;
-}
 
 /// `bound_x` is the bound for exp in the interval x is chosen from
 /// `compare` the value to compare to
@@ -118,7 +82,7 @@ export function refExpCmp(
         // Update error estimation: bound_x * x^(n+1)/(n + 1)!
         // error stores the x^n part
         error = scale( error * x );
-        error = divWithPrecision( error, divisor );
+        error = divWithDefaultPrecision( error, divisor );
         error_term = (error * bound_x);
 
         rop = rop + next_x;
