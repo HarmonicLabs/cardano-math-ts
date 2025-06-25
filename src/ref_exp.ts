@@ -1,4 +1,4 @@
-import { _0n, _10n, _1n, _2n, _slowBigintPositiveExp, abs, DIV_DEFAULT_PRECISION, divWithDefaultPrecision, scale } from "./utils/bigints";
+import { _0n, _10n, _1n, _2n, abs, DIV_DEFAULT_PRECISION, divWithDefaultPrecision, scale } from "./utils/bigints";
 
 /*
 /// Entry point for 'exp' approximation. First does the scaling of 'x' to [0,1]

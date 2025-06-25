@@ -1,6 +1,7 @@
 import { isObject } from "@harmoniclabs/obj-utils";
-import { _0n, _10n, _2n, _slowBigintPositiveExp, abs, divWithDefaultPrecision, scale } from "./utils/bigints";
+import { _0n, _10n, _2n, abs, divWithDefaultPrecision, scale } from "./utils/bigints";
 import { ref_ln } from "./ref_ln";
+import { ipow } from "./ref_exp";
 
 export interface IBigDecimal {
     precision: bigint;
@@ -148,7 +149,7 @@ export class BigDecimal
         if( precision === DEFAULT_PRECISION ) return DEFAULT_BigDecimal.clone();
         return new BigDecimal({
             precision,
-            precision_multiplier: _slowBigintPositiveExp( _10n, precision ),
+            precision_multiplier: ipow( _10n, precision ),
             data: _0n
         });
     }
@@ -171,6 +172,6 @@ export class BigDecimal
 
 const DEFAULT_BigDecimal: BigDecimal = new BigDecimal({
     precision: DEFAULT_PRECISION,
-    precision_multiplier: _slowBigintPositiveExp( _10n, DEFAULT_PRECISION ),
+    precision_multiplier: ipow( _10n, DEFAULT_PRECISION ),
     data: _0n
 });

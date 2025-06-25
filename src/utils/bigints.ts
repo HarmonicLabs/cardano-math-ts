@@ -1,24 +1,10 @@
+import { ipow } from "../ref_exp";
 
 export const _0n = BigInt(0);
 export const _1n = BigInt(1);
 export const _2n = BigInt(2);
 export const _10n = BigInt(10);
 export const _34n = BigInt(34);
-
-/**
- * we could just do `base ** exp` but we don't have this luxury targeting ES5
- */
-export function _slowBigintPositiveExp( base: bigint, exp: bigint ): bigint
-{
-    if( exp < _0n ) {
-        throw new Error("Exponent must be a non-negative bigint");
-    }
-    while( exp > _1n ) {
-        base *= base;
-        exp -= _1n;
-    }
-    return base;
-}
 
 export function abs( value: bigint ): bigint
 {
@@ -36,7 +22,7 @@ export function divWithPrecision(
 }
 //*/
 
-export const DIV_DEFAULT_PRECISION = _slowBigintPositiveExp( _10n, _34n );
+export const DIV_DEFAULT_PRECISION = ipow( _10n, _34n );
 
 export function div_qr(
     x: bigint,

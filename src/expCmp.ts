@@ -1,5 +1,6 @@
 import { BigDecimal, IBigDecimal } from "./BigDecimal";
-import { _0n, _10n, _1n, _34n, _slowBigintPositiveExp, abs, DIV_DEFAULT_PRECISION, div_qr, divWithDefaultPrecision, scale } from "./utils/bigints";
+import { ipow } from "./ref_exp";
+import { _0n, _10n, _1n, _34n, abs, DIV_DEFAULT_PRECISION, div_qr, divWithDefaultPrecision, scale } from "./utils/bigints";
 
 export enum ExpOrd {
     GT = 1,
@@ -34,7 +35,7 @@ export function expCmp(
 
 
 const ONE = _1n;
-const EPS_THRESHOLD = _slowBigintPositiveExp( _10n, _10n );
+const EPS_THRESHOLD = ipow( _10n, _10n );
 
 /// `bound_x` is the bound for exp in the interval x is chosen from
 /// `compare` the value to compare to
@@ -55,7 +56,7 @@ export function refExpCmp(
 ): ExpCmpOrdering
 {
     const precision = BigInt( 34 );
-    const precision_multiplier = _slowBigintPositiveExp( _10n, precision );
+    const precision_multiplier = ipow( _10n, precision );
     
     // let result = precision_multiplier; // Start with 1.0 in fixed-point
     let n = _0n;
