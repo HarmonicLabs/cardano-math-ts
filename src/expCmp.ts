@@ -1,6 +1,9 @@
 import { BigDecimal, IBigDecimal } from "./BigDecimal";
-import { ipow } from "./ref_exp";
-import { _0n, _10n, _1n, _34n, abs, DIV_DEFAULT_PRECISION, div_qr, divWithDefaultPrecision, scale } from "./utils/bigints";
+import { abs } from "./utils/bigints/abs";
+import { DIV_DEFAULT_PRECISION } from "./utils/bigints/DIV_DEFAULT_PRECISION";
+import { divWithDefaultPrecision } from "./utils/bigints/divWithDefaultPrecision";
+import { ipow_ } from "./utils/bigints/ipow_";
+import { scale } from "./utils/bigints/scale";
 
 export enum ExpOrd {
     GT = 1,
@@ -34,8 +37,8 @@ export function expCmp(
 
 
 
-const ONE = _1n;
-const EPS_THRESHOLD = ipow( _10n, _10n );
+const ONE = DIV_DEFAULT_PRECISION;
+const EPS_THRESHOLD = ipow_( BigInt(10), BigInt(10) );
 
 /// `bound_x` is the bound for exp in the interval x is chosen from
 /// `compare` the value to compare to
@@ -55,12 +58,12 @@ export function refExpCmp(
     compare: bigint
 ): ExpCmpOrdering
 {
-    const precision = BigInt( 34 );
-    const precision_multiplier = ipow( _10n, precision );
+    // const precision = BigInt( 34 );
+    // const precision_multiplier = ipow_( BigInt(10), precision );
     
-    // let result = precision_multiplier; // Start with 1.0 in fixed-point
-    let n = _0n;
-    let divisor: bigint = _1n;
+    rop = ONE;
+    let n = BigInt(0);
+    let divisor: bigint = ONE;
     let next_x: bigint;
     let error: bigint = x;
     let upper: bigint;
@@ -92,7 +95,7 @@ export function refExpCmp(
         upper = rop + error_term;
         if( compare > upper ) {
             estimate = ExpOrd.GT;
-            n += _1n;
+            n += BigInt(1);
             break;
         }
 
@@ -100,7 +103,7 @@ export function refExpCmp(
         lower = rop - error_term;
         if( compare < lower ) {
             estimate = ExpOrd.LT;
-            n += _1n;
+            n += BigInt(1);
             break;
         }
         

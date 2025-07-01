@@ -1,7 +1,10 @@
 import { isObject } from "@harmoniclabs/obj-utils";
-import { _0n, _10n, _2n, abs, divWithDefaultPrecision, scale } from "./utils/bigints";
-import { ref_ln } from "./ref_ln";
-import { ipow } from "./ref_exp";
+import { abs } from "./utils/bigints/abs";
+import { divWithDefaultPrecision } from "./utils/bigints/divWithDefaultPrecision";
+import { ipow } from "./utils/bigints/ipow";
+import { ref_ln } from "./utils/bigints/ref_ln";
+import { scale } from "./utils/bigints/scale";
+import { ref_exp } from "./utils/bigints/ref_exp";
 
 export interface IBigDecimal {
     precision: bigint;
@@ -39,13 +42,45 @@ export class BigDecimal
         this.data = data;
     }
 
+    static from( n: number | bigint ): BigDecimal
+    {
+        return BigDecimal.fromBigint( BigInt( n ) );
+    }
+
+    toString(): string
+    {
+        const dataStr = this.data.toString();
+        const isNegative = this.data < BigInt(0);
+        const absDataStr = isNegative ? dataStr.slice(1) : dataStr;
+        
+        const precisionNum = Number(this.precision);
+        
+        // If the number has fewer digits than precision, pad with leading zeros
+        const paddedStr = absDataStr.padStart(precisionNum + 1, '0');
+        
+        // Split into integer and fractional parts
+        const integerPart = paddedStr.slice(0, -precisionNum) || '0';
+        const fractionalPart = paddedStr.slice(-precisionNum);
+        
+        // Remove trailing zeros from fractional part
+        const trimmedFractional = fractionalPart.replace(/0+$/, '');
+        
+        // Build the result
+        let result = integerPart;
+        if (trimmedFractional.length > 0) {
+            result += '.' + trimmedFractional;
+        }
+        
+        return isNegative ? '-' + result : result;
+    }
+
     round(): BigDecimal
     {
         const result = this.clone();
-        const half = this.precision_multiplier / _2n;
+        const half = this.precision_multiplier / BigInt(2);
         const remainder = result.data % result.precision_multiplier;
         if( abs( remainder ) >= half ) {
-            if( this.data < _0n ) {
+            if( this.data < BigInt(0) ) {
                 result.data -= this.precision_multiplier + remainder;
             } else {
                 result.data += this.precision_multiplier - remainder;
@@ -68,6 +103,18 @@ export class BigDecimal
     add( rhs: BigDecimal ): BigDecimal
     {
         return BigDecimal.add( this, rhs );
+    }
+
+    static exp( n: BigDecimal ): BigDecimal
+    {
+        let exp_x = BigDecimal.fromPrecision( n.precision );
+        const [ next_data ] = ref_exp( exp_x.data, n.data );
+        exp_x.data = next_data;
+        return exp_x;
+    }
+    exp(): BigDecimal
+    {
+        return BigDecimal.exp( this );
     }
 
     static sub(
@@ -130,7 +177,7 @@ export class BigDecimal
 
     static fromString(
         s: string,
-        precision: bigint = DEFAULT_PRECISION
+        precision: bigint | number = DEFAULT_PRECISION
     ): BigDecimal
     {
         // if the string is not a number
@@ -143,14 +190,16 @@ export class BigDecimal
 
     // https://github.com/txpipe/pallas/blob/a97bd93cdc55fa2b061a6ad5fd572f5528a912b8/pallas-math/src/math_dashu.rs#L290
     static fromPrecision(
-        precision: bigint = DEFAULT_PRECISION,
+        precision: bigint | number = DEFAULT_PRECISION,
     ): BigDecimal
     {
+        precision = BigInt( precision );
         if( precision === DEFAULT_PRECISION ) return DEFAULT_BigDecimal.clone();
+        
         return new BigDecimal({
             precision,
-            precision_multiplier: ipow( _10n, precision ),
-            data: _0n
+            precision_multiplier: ipow( BigInt(10), precision ),
+            data: BigInt(0)
         });
     }
 
@@ -172,6 +221,6 @@ export class BigDecimal
 
 const DEFAULT_BigDecimal: BigDecimal = new BigDecimal({
     precision: DEFAULT_PRECISION,
-    precision_multiplier: ipow( _10n, DEFAULT_PRECISION ),
-    data: _0n
+    precision_multiplier: BigInt("10000000000000000000000000000000000"),
+    data: BigInt(0)
 });
